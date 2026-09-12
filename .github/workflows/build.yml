@@ -43,6 +43,35 @@ jobs:
         shell: bash
         run: |
           cmake --build build --parallel
+          
+      - name: Bundle OpenSSL DLLs
+        shell: pwsh
+        run: |
+          $bin = Join-Path $env:GITHUB_WORKSPACE 'build\bin'
+
+          $opensslDir = @(
+            'C:\Program Files\OpenSSL\bin',
+            'C:\Program Files\OpenSSL-Win64\bin'
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+          if (-not $opensslDir) {
+            throw 'OpenSSL bin directory was not found'
+          }
+
+          foreach ($dll in @(
+            'libcrypto-3-x64.dll',
+            'libssl-3-x64.dll'
+          )) {
+            $src = Join-Path $opensslDir $dll
+
+            if (-not (Test-Path $src)) {
+              throw "Missing DLL: $src"
+            }
+
+            Copy-Item $src $bin -Force
+          }
+
+          Get-ChildItem $bin
 
       - name: Upload Aseprite
         uses: actions/upload-artifact@v4
